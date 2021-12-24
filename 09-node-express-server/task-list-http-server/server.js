@@ -1,5 +1,8 @@
-const express = require('express')
-const app = express()
+const express = require('express');
+const app = express();
+
+const fs = require('fs');
+//const url = require('url');
 
 /** 
  * Imagine there is a list of tasks like this: 
@@ -10,6 +13,20 @@ const app = express()
  *  5. Get a girlfriend/boyfriend
  *  
  */
+
+app.use(express.json());
+var jsonObj = {};
+
+function updateTasks(jsonObj){
+    fs.writeFile('tasks.json', JSON.stringify(jsonObj), (err) => {
+        if(err){
+            console.log("Error encountered while saving tasks !");
+        }
+        else{
+            console.log("Tasks saved successfully !");
+        }
+    })
+}
 
 /**
  * When GET request is sent to 127.0.0.1:4114/tasks,
@@ -23,7 +40,7 @@ const app = express()
  *      ]
  */
 app.get('/tasks', (req, res) => {
-    res.send("Hello");
+    res.send(jsonObj["tasks"]);
 })
 
 /**
@@ -41,11 +58,36 @@ app.get('/tasks', (req, res) => {
 app.get('/tasks/:id', (req, res) => {
 
     // BONUS: figure out how `:id` part works 
+    //const pathUrl = url.parse(req.url, true).pathname;
+    //const path = pathUrl.split("/");
+    //res.send(jsonObj["tasks"][path[2]-1]);
+    const taskID = req.params.id;
+    if(taskID<=0 || taskID>jsonObj["tasks"].length){
+        res.send("Invalid task ID !");
+    }
+    else{
+        res.send(jsonObj["tasks"][taskID-1]);
+    }
 })
 
 app.delete('/tasks/:id', (req, res) => {
     
     // Delete task with given id
+    //const pathUrl = url.parse(req.url, true).pathname;
+    //const path = pathUrl.split("/");
+    const taskID = req.params.id;
+    if(taskID<=0 || taskID>jsonObj["tasks"].length){
+        res.send("Invalid task ID !");
+    }
+    else{
+        jsonObj["tasks"].splice(taskID-1, 1);
+        updateTasks(jsonObj);
+        res.send("Task deleted successfully !");
+    }
+
+    
+    //res.send(jsonObj);
+    
 })
 
 /**
@@ -59,11 +101,26 @@ app.delete('/tasks/:id', (req, res) => {
  */
 
 app.post('/tasks', (req, res) => {
-
+    //console.log(req.body["task"]);
+    //res.send("Received");
+    jsonObj["tasks"].push(req.body["task"]);
+    updateTasks(jsonObj);
+    res.send("Task added successfully !");
+    
+    //res.send(jsonObj);
 })
 
 app.listen(4114, () => {
-    console.log('server started on http://127.0.0.1:4114')
+    console.log('server started on http://127.0.0.1:4114');
+    
+    fs.readFile('tasks.json', (err, data) => {
+        if(err){
+            console.log("Error reading JSON Database");
+        }
+        else{
+            jsonObj = JSON.parse(data);
+        }
+    })
 })
 
 /**
